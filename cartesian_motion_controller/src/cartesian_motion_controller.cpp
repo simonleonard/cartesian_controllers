@@ -60,9 +60,23 @@ CartesianMotionController::on_init()
     return ret;
   }
 
+  // Topic where teleop commands are coming in.
+  teleop_cmd_sub =
+    get_node()->create_subscription<geometry_msgs::msg::Twist>("teleop_cmd",
+							       10,
+							       std::bind(&CartesianMotionController::teleop_callback,
+									 this,
+									 std::placeholders::_1 ) );
+
+  // Parameters to enable/disable teleop DoF. false means no teleop
+  get_node()->declare_parameter( "x", false );
+  get_node()->declare_parameter( "y", false );
+  get_node()->declare_parameter( "z", false );
+  
   return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::SUCCESS;
 }
-
+  
+  
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
 CartesianMotionController::on_configure(const rclcpp_lifecycle::State & previous_state)
 {
@@ -138,6 +152,15 @@ ctrl::Vector6D CartesianMotionController::computeMotionError()
   error_kdl.M = m_target_frame.M * m_current_frame.M.Inverse();
   error_kdl.p = m_target_frame.p - m_current_frame.p;
 
+  // Overrule error with teleop if enabled
+  bool x=false, y=false, z=false;
+  get_node()->get_parameter("x", x );
+  get_node()->get_parameter("y", y );
+  get_node()->get_parameter("z", z );
+  if( x ) { error_kdl.p.x( m_twist_cmd.linear.x ); }
+  if( y ) { error_kdl.p.y( m_twist_cmd.linear.y ); }
+  if( z ) { error_kdl.p.z( m_twist_cmd.linear.z ); }
+  
   // Use Rodrigues Vector for a compact representation of orientation errors
   // Only for angles within [0,Pi)
   KDL::Vector rot_axis = KDL::Vector::Zero();

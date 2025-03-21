@@ -108,6 +108,10 @@ protected:
   KDL::Frame m_target_frame;
   KDL::Frame m_current_frame;
 
+  geometry_msgs::msg::Twist m_twist_cmd;
+  rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr teleop_cmd_sub;
+  void teleop_callback( const geometry_msgs::msg::Twist& twist ){ m_twist_cmd = twist; }
+
   void targetFrameCallback(const geometry_msgs::msg::PoseStamped::SharedPtr target);
 
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr m_target_frame_subscr;
